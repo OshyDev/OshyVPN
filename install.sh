@@ -2,9 +2,8 @@
 set -euo pipefail
 
 REPOSITORY="${OSHYVPN_REPOSITORY:-OshyDev/oshyVPN}"
-VERSION="0.0.1~beta"
 ARCH="$(dpkg --print-architecture)"
-ASSET="oshyvpn_${VERSION}_${ARCH}.deb"
+ASSET="oshyvpn_${ARCH}.deb"
 URL="https://github.com/${REPOSITORY}/releases/latest/download/${ASSET}"
 PACKAGE="$(mktemp --suffix=.deb)"
 trap 'rm -f "$PACKAGE"' EXIT

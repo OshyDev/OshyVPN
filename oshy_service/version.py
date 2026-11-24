@@ -1,0 +1,3 @@
+APP_NAME = "OshyVPN"
+AUTHOR = "OshyDev"
+VERSION = "0.01-BETA"

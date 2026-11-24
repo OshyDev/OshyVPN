@@ -1,0 +1,56 @@
+name: Build app packages
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - if: startsWith(github.ref, 'refs/tags/')
+        run: python -c "from oshy_service.version import VERSION; import os; assert os.environ['GITHUB_REF_NAME'][1:] == VERSION, 'Tag must match oshy_service/version.py'"
+      - run: python -m pip install -r requirements.txt pyinstaller
+      - run: pyinstaller --clean --onefile --version-file packaging/windows-version.txt --collect-all uvicorn --collect-all fastapi --collect-all pydantic --name oshyVPN oshy_service/cli.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oshyvpn-windows
+          path: dist/oshyVPN.exe
+  debian:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - if: startsWith(github.ref, 'refs/tags/')
+        run: python -c "from oshy_service.version import VERSION; import os; assert os.environ['GITHUB_REF_NAME'][1:] == VERSION, 'Tag must match oshy_service/version.py'"
+      - run: python -m pip install -r requirements.txt pyinstaller
+      - run: pyinstaller --clean --onefile --collect-all uvicorn --collect-all fastapi --collect-all pydantic --name oshyVPN oshy_service/cli.py
+      - run: bash packaging/build-deb.sh
+      - run: cp dist/oshyvpn_0.0.1~beta_amd64.deb dist/oshyvpn_amd64.deb
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oshyvpn-debian
+          path: dist/*.deb
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [windows, debian]
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*
+          generate_release_notes: true
